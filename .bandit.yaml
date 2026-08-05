@@ -1,0 +1,14 @@
+# Bandit configuration file (YAML format)
+exclude_dirs:
+  - tests
+  - htmlcov
+  - .pytest_cache
+  - venv
+  - env
+  - .venv
+  - __pycache__
+
+skips:
+  - B101
+  - B601
+

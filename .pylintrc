@@ -1,0 +1,278 @@
+[MASTER]
+# Python code to execute, usually for sys.path manipulation
+init-hook='import sys; sys.path.append(".")'
+
+# Use multiple processes to speed up Pylint
+jobs=0
+
+# Control the amount of potential inferred values when inferring a single
+# object
+limit-inference-results=100
+
+# List of plugins (as comma separated values of python module names) to load,
+# usually to register additional checkers
+load-plugins=
+
+# Pickle collected data for later comparisons
+persistent=yes
+
+# Minimum Python version to use for version dependent checks
+py-version=3.9
+
+# When enabled, pylint would attempt to guess common misconfiguration and emit
+# user-friendly hints instead of false-positive error messages
+suggestion-mode=yes
+
+# Allow loading of arbitrary C extensions
+unsafe-load-any-extension=no
+
+[MESSAGES CONTROL]
+# Only show warnings with the listed confidence levels
+confidence=
+
+# Disable the message, report, category or checker with the given id(s)
+disable=missing-module-docstring,
+        missing-class-docstring,
+        missing-function-docstring,
+        too-few-public-methods,
+        too-many-arguments,
+        too-many-locals,
+        import-error,
+        no-member,
+        c-extension-no-member
+
+# Enable the message, report, category or checker with the given id(s)
+enable=c-extension-no-member
+
+[FORMAT]
+# Expected format of line ending
+expected-line-ending-format=LF
+
+# Number of spaces of indent required inside a hanging or continued line
+indent-after-paren=4
+
+# String used as indentation unit
+indent-string='    '
+
+# Maximum number of characters on a single line
+max-line-length=127
+
+# Maximum number of lines in a module
+max-module-lines=1000
+
+# Allow the body of a class to be on the same line as the declaration if body
+# contains single statement
+single-line-class-stmt=no
+
+# Allow the body of an if to be on the same line as the test if there is no
+# else
+single-line-if-stmt=no
+
+[BASIC]
+# Naming style matching correct argument names
+argument-naming-style=snake_case
+
+# Regular expression matching correct argument names
+argument-rgx=[a-z_][a-z0-9_]{2,30}$
+
+# Naming style matching correct attribute names
+attr-naming-style=snake_case
+
+# Regular expression matching correct attribute names
+attr-rgx=[a-z_][a-z0-9_]{2,30}$
+
+# Bad variable names which should always be refused, separated by a comma
+bad-names=foo,
+          bar,
+          baz,
+          toto,
+          tutu,
+          tata
+
+# Bad variable names regexes, separated by a comma
+bad-names-rgx=
+
+# Naming style matching correct class attribute names
+class-attribute-naming-style=any
+
+# Regular expression matching correct class attribute names
+class-attribute-rgx=[a-z_][a-z0-9_]{2,30}$
+
+# Naming style matching correct class constant names
+class-const-naming-style=UPPER_CASE
+
+# Regular expression matching correct class constant names
+class-const-rgx=[A-Z_][A-Z0-9_]{2,30}$
+
+# Naming style matching correct class names
+class-naming-style=PascalCase
+
+# Regular expression matching correct class names
+class-rgx=[A-Z][a-zA-Z0-9]+$
+
+# Naming style matching correct constant names
+const-naming-style=UPPER_CASE
+
+# Regular expression matching correct constant names
+const-rgx=[A-Z_][A-Z0-9_]{2,30}$
+
+# Minimum line length for functions, classes, and methods
+min-similarity-lines=4
+
+# Naming style matching correct function names
+function-naming-style=snake_case
+
+# Regular expression matching correct function names
+function-rgx=[a-z_][a-z0-9_]{2,30}$
+
+# Good variable names which should always be accepted, separated by a comma
+good-names=i,
+           j,
+           k,
+           ex,
+           Run,
+           _,
+           id,
+           db,
+           ac
+
+# Good variable names regexes, separated by a comma
+good-names-rgx=
+
+# Include a hint for the correct naming format with invalid-name
+include-naming-hint=yes
+
+# Naming style matching correct inline iteration names
+inlinevar-naming-style=any
+
+# Regular expression matching correct inline iteration names
+inlinevar-rgx=[a-z_][a-z0-9_]{2,30}$
+
+# Naming style matching correct method names
+method-naming-style=snake_case
+
+# Regular expression matching correct method names
+method-rgx=[a-z_][a-z0-9_]{2,30}$
+
+# Naming style matching correct module names
+module-naming-style=snake_case
+
+# Regular expression matching correct module names
+module-rgx=(([a-z_][a-z0-9_]*)|([A-Z][a-zA-Z0-9]+))$
+
+# Colon-delimited sets of names that determine each other's naming style when
+# the name regexes allow several styles
+name-group=
+
+# Regular expression which should only match function or class names that do
+# not require a docstring
+no-docstring-rgx=^_
+
+# List of decorators that produce properties, such as abc.abstractproperty
+property-classes=abc.abstractproperty
+
+# Regular expression matching correct type variable names
+typevar-rgx=[A-Z][a-zA-Z0-9_]{2,30}$
+
+# Naming style matching correct type variable names
+typevar-naming-style=PascalCase
+
+[REPORTS]
+# Python expression which should return a score less than or equal to 10
+evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / statement) * 10)
+
+# Template used to display messages
+msg-template={path}:{line}:{column}: {msg_id}: {msg} ({symbol})
+
+# Set the output format
+output-format=text
+
+# Tells whether to display a full report or only the messages
+reports=yes
+
+# Activate the evaluation score
+score=yes
+
+[REFACTORING]
+# Maximum number of nested blocks for function / method body
+max-nested-blocks=5
+
+# Complete name of functions that never returns
+never-returning-functions=sys.exit
+
+[LOGGING]
+# The type of string formatting that logging methods do
+logging-format-style=old
+
+# Logging modules to check that the string format arguments are in logging
+# function parameter format
+logging-modules=logging
+
+[TYPECHECK]
+# List of decorators that produce context managers
+contextmanager-decorators=contextlib.contextmanager
+
+# List of members which are set dynamically and missed by pylint inference
+# system
+generated-members=
+
+# Tells whether missing members accessed in mixin class should be ignored
+ignore-mixin-members=yes
+
+# Tells whether to warn about missing members when the owner of the attribute
+# is inferred to be None
+ignore-none=yes
+
+# This flag controls whether pylint should warn about no-member and similar
+# checks whenever an opaque object is returned when inferring
+ignore-on-opaque-inference=yes
+
+# List of class names for which member attributes should not be checked
+ignored-classes=optparse.Values,thread._local,_thread._local
+
+# List of module names for which member attributes should not be checked
+ignored-modules=
+
+# Show a hint with possible names when a member name was not found
+missing-member-hint=yes
+
+# The minimum edit distance a name should have to be considered a similar
+# match for a missing member name
+missing-member-hint-distance=1
+
+# The total number of similar names that should be taken in consideration when
+# showing a hint for a missing member
+missing-member-max-choices=1
+
+# Regex pattern to define which classes are considered mixins
+mixin-class-rgx=.*[Mm]ixin
+
+[VARIABLES]
+# List of additional names supposed to be defined in builtins
+additional-builtins=
+
+# Tells whether unused global variables should be treated as a violation
+allow-global-unused-variables=yes
+
+# List of strings which can identify a callback function by name
+callbacks=cb_,
+          _cb
+
+# A regular expression matching the name of dummy variables
+dummy-variables-rgx=_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|dummy|^ignored_|^unused_
+
+# Argument names that match this expression will be ignored
+ignored-argument-names=_.*|^ignored_|^unused_
+
+# Tells whether we should check for unused import in __init__ files
+init-import=no
+
+# List of qualified module names which can have objects that can redefine
+# builtins
+redefining-builtins-modules=six.moves,past.builtins,future.builtins,builtins,io
+
+[EXCEPTIONS]
+# Exceptions that will emit a warning when being caught
+overgeneral-exceptions=BaseException,
+                       Exception
+

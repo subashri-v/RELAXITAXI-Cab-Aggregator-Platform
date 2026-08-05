@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual Environment
+venv/
+*.env
+
+# Test / Coverage Artifacts
+.pytest_cache/
+.coverage
+coverage.xml
+CACHEDIR.TAG
+
+# Database
+relaxitaxi.db
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Testing & Coverage
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.tox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/

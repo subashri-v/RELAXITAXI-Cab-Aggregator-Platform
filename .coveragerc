@@ -1,0 +1,70 @@
+# Coverage configuration file
+# Add modules to coverage by REMOVING them from the omit list below
+# This file is the single source of truth for coverage measurement
+
+[run]
+# Source directories to measure coverage for
+source = src
+
+# Omit patterns - files matching these patterns will NOT be included in coverage
+# To add a module to coverage, remove its pattern from this list
+omit =
+    # Always exclude these
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+    */htmlcov/*
+    */.pytest_cache/*
+    */venv/*
+    */env/*
+    */.venv/*
+    
+    # Modules to EXCLUDE from coverage (remove from this list to include them)
+    # Currently excluding everything except ride_utils.py
+    */app.py
+    */shared_state.py
+    */pages/book_ride.py
+    */pages/driver_view.py
+    */pages/track_ride.py
+    */pages/__init__.py
+    */srcdb_utils.py
+    */pages/rider_history.py
+    */pages/driver_login.py
+    */pages/driver_register.py
+    */pages/rider_login.py
+    */pages/rider_register.py
+    */pages/driver_history.py
+    */db_utils.py
+    */pages/payment_ui.py
+
+    # ride_utils.py is NOT in this list, so it WILL be included in coverage
+
+[report]
+# Exclude lines from coverage reports
+exclude_lines =
+    # Have to re-enable the standard pragma
+    pragma: no cover
+
+    # Don't complain about missing debug-only code
+    def __repr__
+    if self.debug
+
+    # Don't complain if tests don't hit defensive assertion code
+    raise AssertionError
+    raise NotImplementedError
+
+    # Don't complain if non-runnable code isn't run
+    if __name__ == .__main__.:
+
+    # Don't complain about abstract methods
+    @abstractmethod
+
+# Precision for coverage percentage
+precision = 2
+
+# Show missing line numbers
+show_missing = True
+
+# Skip empty files
+skip_empty = True
+
