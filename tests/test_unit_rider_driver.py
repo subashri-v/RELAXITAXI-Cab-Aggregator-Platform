@@ -1,17 +1,14 @@
 import pytest
-from src.db_utils import register_user, authenticate_user, hash_password
-
-import os
-from src.db_utils import init_db, DB_PATH
+from src import db_utils
+from src.db_utils import register_user, authenticate_user
 
 @pytest.fixture(scope="function", autouse=True)
-def clean_db():
-    """Reset DB before running unit tests."""
-    if os.path.exists(DB_PATH):
-        os.remove(DB_PATH)
-    init_db()
+def clean_db(tmp_path, monkeypatch):
+    """Point DB_PATH at an isolated temp file so tests never touch the real relaxitaxi.db."""
+    monkeypatch.setattr(db_utils, "DB_PATH", str(tmp_path / "test_relaxitaxi.db"))
+    db_utils.init_db()
     yield
-    
+
 def test_register_rider_success():
     result = register_user(
         user_type="riders",

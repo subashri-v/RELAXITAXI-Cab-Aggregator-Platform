@@ -20,197 +20,133 @@ from src.pages.driver_view import (
 )
 
 def test_handle_accept_ride(mock_streamlit, mocker):
-    """Tests that accepting a ride changes the state correctly."""
+    """Tests that accepting a ride persists to the DB and updates local state."""
     # Arrange
     st = mock_streamlit
-    st.session_state["booking"] = {'status': 'pending'}
+    st.session_state["booking"] = {'status': 'pending', 'ride_id': 42}
+    st.session_state["user_id"] = 7
+    st.session_state["user_name"] = "You (Driver)"
 
-    # 1. Create a fake "public whiteboard" for this test
-    mock_public_state = {'booking': {'status': 'pending'}}
-
-    # 2. Tell pytest to intercept the call to get_app_state
-    #    and return your fake whiteboard instead.
-    mocker.patch(
-        'src.pages.driver_view.get_app_state',
-        return_value=mock_public_state
-    )
+    mock_accept_ride = mocker.patch('src.pages.driver_view.db_utils.accept_ride')
 
     # Act
     handle_accept_ride(st)
 
     # Assert
-    # Check that the private state was updated
+    # Check that the DB was updated with the right ride/driver info
+    mock_accept_ride.assert_called_once_with(ride_id=42, driver_id=7, driver_name="You (Driver)")
+
+    # Check that the local state was updated to match
     assert st.session_state["booking"]['status'] == 'accepted'
     assert st.session_state["booking"]['driver'] == "You (Driver)"
 
-    # Check that the public state was updated
-    assert mock_public_state["booking"]['status'] == 'accepted'
-
 def test_handle_reject_ride(mock_streamlit, mocker):
-    """Tests that rejecting a ride clears the state."""
+    """Tests that rejecting a ride persists to the DB and clears local state."""
     # Arrange
     st = mock_streamlit
-    st.session_state["booking"] = {'status': 'pending'}
+    st.session_state["booking"] = {'status': 'pending', 'ride_id': 42}
     st.session_state["distance_data"] = {'start': 'A', 'end': 'B'}
 
-    # 1. Create a fake "public whiteboard" for this test
-    mock_public_state = {
-        'booking': {'status': 'pending'},
-        'distance_data': {'start': 'A', 'end': 'B'}
-    }
-
-    # 2. Tell pytest to intercept the call to get_app_state
-    mocker.patch(
-        'src.pages.driver_view.get_app_state',
-        return_value=mock_public_state
-    )
+    mock_update_status = mocker.patch('src.pages.driver_view.db_utils.update_ride_status')
 
     # Act
     handle_reject_ride(st)
 
     # Assert
-    # Check that the private state was cleared
+    mock_update_status.assert_called_once_with(42, "rejected")
+
+    # Check that local state was cleared
     assert st.session_state["booking"] is None
     assert st.session_state["distance_data"] is None
 
-    # Check that the public state was cleared
-    assert mock_public_state["booking"] is None
-    assert mock_public_state["distance_data"] is None
-
 def test_handle_move_forward(mock_streamlit, mocker):
-    """Tests that moving forward increments progress."""
+    """Tests that moving forward increments progress and persists it."""
     # Arrange
     st = mock_streamlit
     st.session_state["ride_progress"] = 0.25
+    st.session_state["booking"] = {'status': 'accepted', 'ride_id': 42}
 
-    # 1. Create a fake "public whiteboard" for this test
-    mock_public_state = {'ride_progress': 0.25}
-
-    # 2. Tell pytest to intercept the call to get_app_state
-    mocker.patch(
-        'src.pages.driver_view.get_app_state',
-        return_value=mock_public_state
-    )
+    mock_update_progress = mocker.patch('src.pages.driver_view.db_utils.update_ride_progress')
 
     # Act
     handle_move_forward(st)
 
     # Assert
-    # Check that the private state was updated
     assert st.session_state["ride_progress"] == 0.50
-
-    # Check that the public state was updated
-    assert mock_public_state["ride_progress"] == 0.50
+    mock_update_progress.assert_called_once_with(42, 0.50)
 
 def test_handle_move_forward_clamp(mock_streamlit, mocker):
     """Tests that progress is clamped at 1.0."""
     # Arrange
     st = mock_streamlit
     st.session_state["ride_progress"] = 0.9  # Start close to the end
+    st.session_state["booking"] = {'status': 'accepted', 'ride_id': 42}
 
-    # 1. Create a fake "public whiteboard" for this test
-    mock_public_state = {'ride_progress': 0.9}
-
-    # 2. Tell pytest to intercept the call to get_app_state
-    mocker.patch(
-        'src.pages.driver_view.get_app_state',
-        return_value=mock_public_state
-    )
+    mock_update_progress = mocker.patch('src.pages.driver_view.db_utils.update_ride_progress')
 
     # Act
     handle_move_forward(st) # This should increment by 0.25, hitting 1.15
 
     # Assert
-    # Check that the private state was clamped to 1.0
     assert st.session_state["ride_progress"] == 1.0
-
-    # Check that the public state was also clamped to 1.0
-    assert mock_public_state["ride_progress"] == 1.0
+    mock_update_progress.assert_called_once_with(42, 1.0)
 
 def test_handle_complete_ride(mock_streamlit, mocker):
-    """Tests that completing a ride clears the state."""
+    """Tests that completing a ride persists to the DB and clears local state."""
     # Arrange
     st = mock_streamlit
-    st.session_state["booking"] = {'status': 'accepted'}
+    st.session_state["booking"] = {'status': 'accepted', 'ride_id': 42}
     st.session_state["ride_progress"] = 1.0
     st.session_state["distance_data"] = {'start': 'A', 'end': 'B'}
     st.session_state["_completed_ride"] = False
 
-    # 1. Create a fake "public whiteboard"
-    mock_public_state = {
-        'booking': {'status': 'accepted'},
-        'distance_data': {'start': 'A', 'end': 'B'},
-        'ride_progress': 1.0
-    }
-
-    # 2. Patch get_app_state
-    mocker.patch(
-        'src.pages.driver_view.get_app_state',
-        return_value=mock_public_state
-    )
+    mock_update_status = mocker.patch('src.pages.driver_view.db_utils.update_ride_status')
 
     # Act
     handle_complete_ride(st)
 
     # Assert
-    # Check that private state is cleared
+    mock_update_status.assert_called_once_with(ride_id=42, status="completed")
+
+    # Check that local state is cleared
     assert st.session_state["booking"] is None
     assert st.session_state["ride_progress"] == 0.0
     assert st.session_state["distance_data"] is None
     assert st.session_state["_completed_ride"] is True # Temp flag is set
-    
-    # Check that public state is cleared
-    assert mock_public_state["booking"] is None
-    assert mock_public_state["distance_data"] is None
-    assert mock_public_state["ride_progress"] == 0.0
-    
+
     # Check that UI elements were called
     st.balloons.assert_called_once()
     st.success.assert_called_once_with("Ride Completed!")
 
 
 def test_handle_cancel_ride(mock_streamlit, mocker):
-    """Tests that cancelling a ride clears the state."""
+    """Tests that cancelling a ride persists to the DB and clears local state."""
     # Arrange
     st = mock_streamlit
-    st.session_state["booking"] = {'status': 'accepted'}
+    st.session_state["booking"] = {'status': 'accepted', 'ride_id': 42}
 
-    # 1. Create a fake "public whiteboard"
-    mock_public_state = {
-        'booking': {'status': 'accepted'},
-        'distance_data': {},
-        'ride_progress': 0.0
-    }
-
-    # 2. Patch get_app_state
-    mocker.patch(
-        'src.pages.driver_view.get_app_state',
-        return_value=mock_public_state
-    )
+    mock_update_status = mocker.patch('src.pages.driver_view.db_utils.update_ride_status')
 
     # Act
     handle_cancel_ride(st)
 
     # Assert
-    # Check that private state is cleared/set
+    mock_update_status.assert_called_once_with(42, "cancelled")
+
+    # Check that local state is cleared/set
     assert st.session_state["booking"] is None
     assert st.session_state["_cancelled_ride"] is True
     assert "_cancel_time" in st.session_state
-
-    # Check that public state is updated
-    assert mock_public_state["booking"]["status"] == "cancelled"
-    assert mock_public_state["distance_data"] is None
-    assert mock_public_state["ride_progress"] == 0.0
 
 def test_handle_logout(mock_streamlit):
     """Tests that logging out clears the role and switches pages."""
     # Arrange
     st = mock_streamlit
     st.session_state["role"] = "driver" # Set a role to clear
-    
+
     # Act
     handle_logout(st)
-    
+
     # Assert
     assert st.session_state["role"] is None
     st.switch_page.assert_called_once_with("app.py")

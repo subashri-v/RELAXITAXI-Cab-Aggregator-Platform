@@ -30,6 +30,13 @@ def calculate_fare(distance_km, ac=True):
     per_km = 20 if ac else 15
     return round(base_fare + (per_km * distance_km), 2)
 
+def estimate_eta_minutes(distance_km, avg_speed_kmph=25):
+    """Estimate driver arrival time from ride distance and an assumed average city speed."""
+    if not isinstance(distance_km, (int, float)) or distance_km <= 0:
+        return 1
+    return max(1, round((distance_km / avg_speed_kmph) * 60))
+
+
 def get_coordinates(location_name):
     """Return (latitude, longitude) tuple for a given location name."""
     geolocator = Nominatim(user_agent="relaxitaxi_utils", timeout=10)

@@ -6,8 +6,9 @@ import src.db_utils as db
 # ---- PASSWORD HASHING ----
 def test_hash_password():
     hashed = db.hash_password("test123")
-    assert len(hashed) == 64
     assert hashed != "test123"
+    assert hashed.startswith("$2b$")  # bcrypt hash prefix
+    assert db.bcrypt.checkpw(b"test123", hashed.encode())
 
 
 # ---- AUTHENTICATION ----
@@ -17,13 +18,14 @@ def test_authenticate_user_success(mock_conn):
     cur = MagicMock()
     conn.cursor.return_value = cur
 
-    # Mock returned row
-    cur.fetchone.return_value = {"id": 1, "email": "a@b.com"}
+    # Mock returned row, with a real bcrypt hash for the correct password
+    stored_hash = db.hash_password("pass")
+    cur.fetchone.return_value = {"id": 1, "email": "a@b.com", "password": stored_hash}
 
     mock_conn.return_value = conn
 
     result = db.authenticate_user("riders", "a@b.com", "pass")
-    assert result == {"id": 1, "email": "a@b.com"}
+    assert result == {"id": 1, "email": "a@b.com", "password": stored_hash}
     cur.execute.assert_called()
 
 

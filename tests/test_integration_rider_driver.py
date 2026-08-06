@@ -1,20 +1,16 @@
-import os
 import pytest
+from src import db_utils
 from src.db_utils import (
-    init_db,
     register_user,
     authenticate_user,
-    get_connection,
-    DB_PATH
 )
 
 
 @pytest.fixture(scope="function", autouse=True)
-def clean_db():
-    """Reset DB before running integration tests."""
-    if os.path.exists(DB_PATH):
-        os.remove(DB_PATH)
-    init_db()
+def clean_db(tmp_path, monkeypatch):
+    """Point DB_PATH at an isolated temp file so tests never touch the real relaxitaxi.db."""
+    monkeypatch.setattr(db_utils, "DB_PATH", str(tmp_path / "test_relaxitaxi.db"))
+    db_utils.init_db()
     yield
 
 

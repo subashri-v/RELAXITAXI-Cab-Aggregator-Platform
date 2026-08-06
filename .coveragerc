@@ -22,7 +22,6 @@ omit =
     # Modules to EXCLUDE from coverage (remove from this list to include them)
     # Currently excluding everything except ride_utils.py
     */app.py
-    */shared_state.py
     */pages/book_ride.py
     */pages/driver_view.py
     */pages/track_ride.py

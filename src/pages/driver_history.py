@@ -11,7 +11,6 @@ import pandas as pd
 import streamlit as st
 
 from db_utils import get_driver_history
-from shared_state import get_app_state
 
 
 def check_driver_auth() -> None:
@@ -86,7 +85,6 @@ def show_driver_history() -> None:
 
 def main() -> None:
     """Main entry point for driver history page."""
-    get_app_state()  # Ensure shared state loads
     check_driver_auth()
     st.title("👨‍✈️ Driver Ride History")
     render_navigation()
