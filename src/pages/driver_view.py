@@ -18,15 +18,19 @@ from streamlit_folium import st_folium
 
 # 3. Local application imports
 import db_utils
+from session_utils import forget_session, goto, restore_session
+from ui_helpers import setup_page
 
 # ---------------------------------------------------------------------
 # 1. HANDLER FUNCTIONS (The "Controller" Logic)
 # ---------------------------------------------------------------------
 
 def handle_logout(st_app):
-    """Logs the user out and returns to the login page."""
+    """Logs the user out. Navigation can't happen here: Streamlit treats
+    st.switch_page (like st.rerun) as a no-op inside an on_click callback,
+    so we just flag it and let main() do the actual navigation."""
     st_app.session_state["role"] = None
-    st_app.switch_page("app.py")
+    st_app.session_state["_signed_out"] = True
 
 
 def handle_accept_ride(st_app):
@@ -124,7 +128,7 @@ def _render_pending_view(st_app, booking, distance_data):
     col1, col2 = st_app.columns(2)
     with col1:
         st_app.button("✅ Accept Ride", on_click=handle_accept_ride,
-                      args=(st_app,), use_container_width=True)
+                      args=(st_app,), use_container_width=True, type="primary")
     with col2:
         st_app.button("🚫 Reject Ride", on_click=handle_reject_ride,
                       args=(st_app,), use_container_width=True)
@@ -139,11 +143,11 @@ def _render_accepted_view(st_app, distance_data, ride_progress):
     col1, col2, col3 = st_app.columns(3)
     with col1:
         st_app.button("🚗 Move Forward", on_click=handle_move_forward,
-                      args=(st_app,), use_container_width=True)
+                      args=(st_app,), use_container_width=True, type="primary")
     with col2:
         if ride_progress > 0.0:
             st_app.button("🏁 Complete Ride", on_click=handle_complete_ride,
-                          args=(st_app,), use_container_width=True)
+                          args=(st_app,), use_container_width=True, type="primary")
     with col3:
         if ride_progress == 0.0:
             st_app.button("🚫 Cancel Ride", on_click=handle_cancel_ride,
@@ -168,7 +172,7 @@ def _render_accepted_view(st_app, distance_data, ride_progress):
         ride_progress * (end_coords[1] - start_coords[1])
     curr_location = (curr_lat, curr_lon)
 
-    m = folium.Map(location=curr_location, zoom_start=13)
+    m = folium.Map(location=curr_location, zoom_start=13, tiles="CartoDB dark_matter")
     folium.Marker(start_coords, tooltip="Start",
                   icon=folium.Icon(color="green")).add_to(m)
     folium.Marker(end_coords, tooltip="Destination",
@@ -193,10 +197,10 @@ def render_driver_view():
     with col1:
         st.title("👨‍✈️ Driver Portal")
     with col2:
-        st.button("Sign Out", on_click=handle_logout, args=(st,))
+        st.button("Sign Out", on_click=handle_logout, args=(st,), type="tertiary")
 
-    if st.button("Driver Ride History"):
-        st.switch_page("pages/driver_history.py")
+    if st.button("Driver Ride History", type="tertiary"):
+        goto("pages/driver_history.py")
     st.divider()
 
     # --- Load states from *private* session_state ---
@@ -229,23 +233,20 @@ def main():
     This function runs all the "page-level" logic.
     """
 
-    # --- CSS ---
-    st.markdown(
-        """
-    <style>
-        [data-testid="stSidebar"] {
-            display: none;
-        }
-    </style>
-    """,
-        unsafe_allow_html=True,
-    )
+    setup_page("Driver Portal", "🧑‍✈️")
+    restore_session()
+
+    # --- Handle deferred sign-out (flagged by handle_logout) ---
+    if st.session_state.pop("_signed_out", False):
+        forget_session()
+        goto("app.py")
+        st.stop()
 
     # --- Security Check ---
     if st.session_state.get("role") != "driver":
         st.error("You must be logged in as a driver to access this page.")
-        if st.button("Go to Login"):
-            st.switch_page("app.py")
+        if st.button("Go to Login", type="primary"):
+            goto("app.py")
         st.stop()
 
     # --- Handle temporary "cancel" message ---

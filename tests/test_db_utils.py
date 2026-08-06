@@ -201,6 +201,36 @@ def test_get_user_by_email_none(mock_conn):
     assert user is None
 
 
+# ---- GET USER BY ID ----
+@patch("src.db_utils.get_connection")
+def test_get_user_by_id_success(mock_conn):
+    conn = MagicMock()
+    cur = MagicMock()
+    conn.cursor.return_value = cur
+    mock_conn.return_value = conn
+    cur.fetchone.return_value = {"id": 5, "email": "test@x.com"}
+
+    user = db.get_user_by_id("riders", 5)
+    assert user == {"id": 5, "email": "test@x.com"}
+
+
+@patch("src.db_utils.get_connection")
+def test_get_user_by_id_none(mock_conn):
+    conn = MagicMock()
+    cur = MagicMock()
+    conn.cursor.return_value = cur
+    mock_conn.return_value = conn
+    cur.fetchone.return_value = None
+
+    user = db.get_user_by_id("drivers", 999)
+    assert user is None
+
+
+def test_get_user_by_id_invalid_type():
+    with pytest.raises(ValueError):
+        db.get_user_by_id("admins", 1)
+
+
 # ---- RIDE LOCKING (uses a real temp SQLite file: the guarantee being
 # tested is SQLite's atomic UPDATE, which a mocked connection can't prove) ----
 def _make_pending_ride(tmp_path, monkeypatch, name):

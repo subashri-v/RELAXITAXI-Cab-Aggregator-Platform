@@ -15,6 +15,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import db_utils
 from db_utils import get_active_ride_for_rider, ride_to_booking_view, ride_to_distance_data
+from session_utils import forget_session, goto, restore_session
+from ui_helpers import setup_page
 
 
 # ====== Core Logic ======
@@ -69,12 +71,13 @@ def simulate_driver_position(
 
 # ====== Streamlit UI ======
 
-st.markdown("<style>[data-testid='stSidebar']{display:none;}</style>", unsafe_allow_html=True)
+setup_page("Track Your Ride", "📍")
+restore_session()
 
 if st.session_state.get("role") != "customer":
     st.error("You must be logged in as a customer to access this page.")
-    if st.button("Go to Login"):
-        st.switch_page("app.py")
+    if st.button("Go to Login", type="primary"):
+        goto("app.py")
     st.stop()
 
 # Header
@@ -82,19 +85,17 @@ col1, col2 = st.columns([0.8, 0.2])
 with col1:
     st.title("📍 Track Your Ride")
 with col2:
-    if st.button("Sign Out"):
+    if st.button("Sign Out", type="tertiary"):
         st.session_state.role = None
-        st.switch_page("app.py")
+        forget_session()
+        goto("app.py")
 
 # Check active ride
 rider_id = int(st.session_state.user_id)
 active_ride = get_active_ride_for_rider(rider_id)
 
 if active_ride is None:
-    '''st.warning("🚕 No active ride found. Please book a cab first from the main page.")
-    if st.button("Go to Booking Page"):
-        st.switch_page("pages/book_ride.py")'''
-    st.switch_page("pages/payment_ui.py")
+    goto("pages/payment_ui.py")
     st.stop()
 
 booking_info: Dict[str, Any] = ride_to_booking_view(active_ride)
@@ -146,7 +147,7 @@ else:
     st.balloons()
     db_utils.update_ride_status(active_ride["id"], "completed")
     time.sleep(2)
-    st.switch_page("pages/payment_ui.py")
+    goto("pages/payment_ui.py")
 
 curr_location = simulate_driver_position(start_coords, end_coords, progress)
 st.progress(progress, text=f"Ride Progress: {progress * 100:.0f}%")
@@ -158,7 +159,7 @@ if progress == 0.0 and st.button("🚫 Cancel Ride"):
     st.rerun()
 
 # ====== Map Display ======
-map_obj = folium.Map(location=curr_location, zoom_start=13)
+map_obj = folium.Map(location=curr_location, zoom_start=13, tiles="CartoDB dark_matter")
 folium.Marker(start_coords, tooltip="Start", icon=folium.Icon(color="green")).add_to(map_obj)
 folium.Marker(end_coords, tooltip="Destination", icon=folium.Icon(color="red")).add_to(map_obj)
 folium.Marker(

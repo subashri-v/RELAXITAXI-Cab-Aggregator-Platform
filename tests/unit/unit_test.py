@@ -139,7 +139,12 @@ def test_handle_cancel_ride(mock_streamlit, mocker):
     assert "_cancel_time" in st.session_state
 
 def test_handle_logout(mock_streamlit):
-    """Tests that logging out clears the role and switches pages."""
+    """Tests that logging out clears the role and defers navigation.
+
+    Streamlit treats st.switch_page (like st.rerun) as a no-op inside an
+    on_click callback, so handle_logout can't navigate directly -- it just
+    flags the sign-out for main() to act on during the next script run.
+    """
     # Arrange
     st = mock_streamlit
     st.session_state["role"] = "driver" # Set a role to clear
@@ -149,4 +154,5 @@ def test_handle_logout(mock_streamlit):
 
     # Assert
     assert st.session_state["role"] is None
-    st.switch_page.assert_called_once_with("app.py")
+    assert st.session_state["_signed_out"] is True
+    st.switch_page.assert_not_called()

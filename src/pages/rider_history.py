@@ -1,7 +1,13 @@
+import pandas as pd
 import streamlit as st
 from db_utils import get_rider_history
+from session_utils import goto, restore_session
+from ui_helpers import setup_page
 
-st.title("📝 Your Ride History")
+setup_page("Ride History", "📜")
+restore_session()
+
+st.title("📜 Your Ride History")
 
 # Security check
 if st.session_state.get("role") != "customer" or st.session_state.get("user_id") is None:
@@ -14,17 +20,22 @@ history = get_rider_history(user_id)
 if not history:
     st.info("No rides found yet.")
 else:
-    for ride in history:
-        st.markdown(f"**Ride ID:** {ride['id']}")
-        st.markdown(f"From: {ride['start_location']} → To: {ride['end_location']}")
-        st.markdown(
-            f"Distance: {ride['distance_km']:.2f} km | "
-            f"Fare: ₹{ride['fare']:.2f} | "
-            f"AC: {'Yes' if ride['ac'] else 'No'}"
-        )
-        st.markdown(f"Driver ID: {ride['driver_id']} | Status: {ride['status']}")
-        st.markdown(f"Time: {ride['ride_time']}")
-        st.divider()
+    df = pd.DataFrame(history)
+    df["ac"] = df["ac"].apply(lambda value: "AC" if value else "Non-AC")
+    df = df[[
+        "id", "start_location", "end_location",
+        "distance_km", "fare", "ac", "status", "ride_time"
+    ]].rename(columns={
+        "id": "Ride ID",
+        "start_location": "Start",
+        "end_location": "End",
+        "distance_km": "Distance (km)",
+        "fare": "Fare (₹)",
+        "ac": "Type",
+        "status": "Status",
+        "ride_time": "Booked At",
+    })
+    st.dataframe(df, use_container_width=True, hide_index=True)
 
-if st.button("Book a New Ride"):
-    st.switch_page("pages/book_ride.py")
+if st.button("Book a New Ride", use_container_width=True, type="primary"):
+    goto("pages/book_ride.py")

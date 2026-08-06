@@ -4,11 +4,13 @@ import sys
 import streamlit as st
 
 from db_utils import authenticate_user, init_db
+from session_utils import goto, remember_session
+from ui_helpers import setup_page
 
 # Ensure src directory in import path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-st.set_page_config(page_title="Driver Login", layout="centered")
+setup_page("Driver Login", "🧑‍✈️")
 
 # Initialize DB if not present
 init_db()
@@ -24,13 +26,14 @@ def login_driver(email: str, password: str):
     st.session_state["user_id"] = driver["id"]
     st.session_state["user_name"] = driver["name"]
     st.session_state["role"] = "driver"
+    remember_session("driver", driver["id"])
     return True
 
 
 with st.form("login_form"):
     email = st.text_input("Email")
     password = st.text_input("Password", type="password")
-    submitted = st.form_submit_button("Login")
+    submitted = st.form_submit_button("Login", type="primary", use_container_width=True)
 
 if submitted:
     if not email or not password:
@@ -38,10 +41,10 @@ if submitted:
     else:
         if login_driver(email, password):
             st.success("Login successful!")
-            st.switch_page("pages/driver_view.py")
+            goto("pages/driver_view.py")
             st.stop()
         else:
             st.error("Invalid credentials. Please try again.")
 
-if st.button("Don't have an account? Register"):
-    st.switch_page("pages/driver_register.py")
+if st.button("Don't have an account? Register", type="tertiary"):
+    goto("pages/driver_register.py")

@@ -397,6 +397,21 @@ def get_user_by_email(user_type: str, email: str):
         conn.close()
 
 
+# --- Get user by id (used to restore a session after a browser refresh) ---
+def get_user_by_id(user_type: str, user_id):
+    if user_type not in ("riders", "drivers"):
+        raise ValueError("user_type must be 'riders' or 'drivers'")
+
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(f"SELECT * FROM {user_type} WHERE id=?", (user_id,))
+        row = cur.fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
 # --- Auto-initialize DB ---
 if not os.path.exists(DB_PATH):
     init_db()

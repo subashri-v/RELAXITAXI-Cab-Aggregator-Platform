@@ -3,8 +3,12 @@ import time
 import qrcode
 from io import BytesIO
 
+from session_utils import goto
+from ui_helpers import hide_sidebar
+
 def main():
     # --- Page setup ---
+    hide_sidebar()
     st.title("💳 Ride Payment")
 
     # --- Payment method selection ---
@@ -30,10 +34,10 @@ def main():
         st.info(f"Or tap to pay: [Pay via UPI]({upi_link})")
 
     # --- Confirm payment button ---
-    if st.button("Confirm Payment 💰", use_container_width=True):
+    if st.button("Confirm Payment 💰", use_container_width=True, type="primary"):
         st.success("✅ Payment successful! Thank you for riding with RelaxiTaxi.")
         time.sleep(2)
-        st.switch_page("pages/book_ride.py")
+        goto("pages/book_ride.py")
 
 if __name__ == "__main__":
     main()

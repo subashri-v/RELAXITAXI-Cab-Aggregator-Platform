@@ -19,6 +19,11 @@ from db_utils import (  # pylint: disable=E0401
     get_active_ride_for_rider,
     ride_to_booking_view,
 )
+from session_utils import forget_session, goto, restore_session  # pylint: disable=E0401
+from ui_helpers import setup_page  # pylint: disable=E0401
+
+setup_page("Book a Ride", "🚗")
+restore_session()
 
 
 def compute_distance_data(start_location: str, end_location: str) -> Dict[str, Any]:
@@ -36,37 +41,32 @@ def compute_distance_data(start_location: str, end_location: str) -> Dict[str, A
 
 # ====== Streamlit UI ======
 
-# Hide sidebar
-st.markdown(
-    "<style>[data-testid='stSidebar']{display:none;}</style>",
-    unsafe_allow_html=True
-)
-
 # Security Check
 if st.session_state.get("role") != "customer":
     st.error("Please log in as a customer to access this page.")
-    if st.button("Go to Login"):
-        st.switch_page("app.py")
+    if st.button("Go to Login", type="primary"):
+        goto("app.py")
     st.stop()
 
-if st.button("Ride History"):
-    st.switch_page("pages/rider_history.py")
+if st.button("Ride History", type="tertiary"):
+    goto("pages/rider_history.py")
 
 # Header
 col1, col2 = st.columns([0.8, 0.2])
 with col1:
     st.title("🚕 RelaxiTaxi")
 with col2:
-    if st.button("Sign Out"):
+    if st.button("Sign Out", type="tertiary"):
         st.session_state.role = None
-        st.switch_page("app.py")
+        forget_session()
+        goto("app.py")
 
 # Inputs
 start = st.text_input("Enter Start Location:", "PES University, Bangalore")
 end = st.text_input("Enter End Location:", "MG Road, Bangalore")
 
 # Search button
-if st.button("Search Rides"):
+if st.button("Search Rides", type="primary"):
     try:
         st.session_state["search_result"] = compute_distance_data(start, end)
     except ValueError as e:
@@ -79,7 +79,7 @@ if st.session_state.get("search_result"):
     st.success(f"📏 Distance between {data['start']} and {data['end']}: {distance:.2f} km")
 
     # Map
-    m = folium.Map(location=data["start_coords"], zoom_start=13)
+    m = folium.Map(location=data["start_coords"], zoom_start=13, tiles="CartoDB dark_matter")
     folium.Marker(data["start_coords"], tooltip="Start", icon=folium.Icon(color='green')).add_to(m)
     folium.Marker(data["end_coords"], tooltip="End", icon=folium.Icon(color='red')).add_to(m)
     st_folium(m, width=700, height=500)
@@ -92,46 +92,50 @@ if st.session_state.get("search_result"):
     col1, col2 = st.columns(2)
 
     with col1:
-        st.image("https://icon-library.com/images/cab-icon/cab-icon-16.jpg", width=120)
-        st.markdown("**Non-AC Ride**")
-        st.markdown(f"💰 Estimated Fare: **₹{total_non_ac:.2f}**")
-        if st.button("Book Non-AC"):
-            add_ride(
-                rider_id=int(st.session_state.user_id),
-                start=data["start"],
-                end=data["end"],
-                start_coords=data["start_coords"],
-                end_coords=data["end_coords"],
-                distance_km=distance,
-                fare=total_non_ac,
-                ac=False,
-                driver_id=None
+        with st.container(border=True):
+            st.markdown(
+                "<div style='text-align:center; font-size:56px;'>🚗</div>",
+                unsafe_allow_html=True,
             )
-            st.session_state["search_result"] = None
-            st.rerun()
+            st.markdown("**Non-AC Ride**")
+            st.markdown(f"💰 Estimated Fare: **₹{total_non_ac:.2f}**")
+            if st.button("Book Non-AC", use_container_width=True, type="primary"):
+                add_ride(
+                    rider_id=int(st.session_state.user_id),
+                    start=data["start"],
+                    end=data["end"],
+                    start_coords=data["start_coords"],
+                    end_coords=data["end_coords"],
+                    distance_km=distance,
+                    fare=total_non_ac,
+                    ac=False,
+                    driver_id=None
+                )
+                st.session_state["search_result"] = None
+                st.rerun()
 
     with col2:
-        st.image(
-            "https://images.vexels.com/media/users/3/128868/isolated/preview/"
-            "b8dd4eaa0e285fcf4248b50916b0cef9-taxi-cab-icon-silhouette.png",
-            width=120
-        )
-        st.markdown("**AC Ride**")
-        st.markdown(f"💰 Estimated Fare: **₹{total_ac:.2f}**")
-        if st.button("Book AC"):
-            add_ride(
-                rider_id=int(st.session_state.user_id),
-                start=data["start"],
-                end=data["end"],
-                start_coords=data["start_coords"],
-                end_coords=data["end_coords"],
-                distance_km=distance,
-                fare=total_ac,
-                ac=True,
-                driver_id=None
+        with st.container(border=True):
+            st.markdown(
+                "<div style='text-align:center; font-size:56px;'>🚕</div>",
+                unsafe_allow_html=True,
             )
-            st.session_state["search_result"] = None
-            st.rerun()
+            st.markdown("**AC Ride**")
+            st.markdown(f"💰 Estimated Fare: **₹{total_ac:.2f}**")
+            if st.button("Book AC", use_container_width=True, type="primary"):
+                add_ride(
+                    rider_id=int(st.session_state.user_id),
+                    start=data["start"],
+                    end=data["end"],
+                    start_coords=data["start_coords"],
+                    end_coords=data["end_coords"],
+                    distance_km=distance,
+                    fare=total_ac,
+                    ac=True,
+                    driver_id=None
+                )
+                st.session_state["search_result"] = None
+                st.rerun()
 
 # Booking Confirmation
 active_ride = get_active_ride_for_rider(int(st.session_state.user_id))
@@ -152,5 +156,5 @@ if active_ride:
             f"⏱ ETA: **{current_booking_data['eta']} mins**\n\n"
             f"💰 Fare: **₹{current_booking_data['fare']:.2f}**"
         )
-        if st.button("📍 Track Your Ride"):
-            st.switch_page("pages/track_ride.py")
+        if st.button("📍 Track Your Ride", type="primary"):
+            goto("pages/track_ride.py")

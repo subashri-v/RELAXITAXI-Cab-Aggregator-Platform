@@ -2,21 +2,17 @@ from pathlib import Path
 
 import streamlit as st
 
+from session_utils import goto
+from ui_helpers import setup_page
+
 ASSETS_DIR = Path(__file__).parent
 
-st.set_page_config(
-    page_title="Welcome to RelaxiTaxi",
-    layout="centered",
-)
+setup_page("Welcome to RelaxiTaxi", "🚕")
 
 # --- NEW CSS FIX ---
 st.markdown(
     """
 <style>
-    [data-testid="stSidebar"] {
-        display: none;
-    }
-
     /* 1. Target the cards (the bordered containers) */
     [data-testid="stVerticalBlockBorderWrapper"] {
         /* Set a taller fixed height as requested */
@@ -61,18 +57,20 @@ def set_role(role):
     st.session_state.role = role
 
 st.title("🚕 Welcome to RelaxiTaxi")
-st.markdown("Please select your role to continue.")
+st.caption("Your relaxed ride, on demand. Please select your role to continue.")
 
 col1, col2 = st.columns(2)
 
 with col1:
-    st.image(str(ASSETS_DIR / "customer.jpg"), width=150)
-    if st.button("I'm a Customer", use_container_width=True):
-        set_role("customer")
-        st.switch_page("pages/rider_login.py")
+    with st.container(border=True):
+        st.image(str(ASSETS_DIR / "customer.jpg"), width=150)
+        if st.button("I'm a Customer", use_container_width=True, type="primary"):
+            set_role("customer")
+            goto("pages/rider_login.py")
 
 with col2:
-    st.image(str(ASSETS_DIR / "driver.jpg"), width=150)
-    if st.button("I'm a Driver", use_container_width=True):
-        set_role("driver")
-        st.switch_page("pages/driver_login.py")
+    with st.container(border=True):
+        st.image(str(ASSETS_DIR / "driver.jpg"), width=150)
+        if st.button("I'm a Driver", use_container_width=True, type="primary"):
+            set_role("driver")
+            goto("pages/driver_login.py")
