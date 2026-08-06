@@ -31,6 +31,9 @@ LOCK_TIMEOUT_SECONDS = 30
 def get_connection():
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
+    # WAL allows concurrent readers alongside a writer, which matters here
+    # since drivers poll for pending rides while riders/other drivers write.
+    conn.execute("PRAGMA journal_mode=WAL")
     return conn
 
 
