@@ -289,6 +289,35 @@ def get_active_ride_for_rider(rider_id: int):
 
 
 
+# --- Get a driver's currently accepted ride, if any (e.g. to resume after
+# their session_state was reset mid-ride) ---
+def get_active_ride_for_driver(driver_id: int):
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "SELECT * FROM rides WHERE driver_id=? AND status='accepted' "
+            "ORDER BY id DESC LIMIT 1",
+            (driver_id,)
+        )
+        row = cur.fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+# --- Fetch a single ride by id, e.g. to re-sync a cached copy with the DB ---
+def get_ride_by_id(ride_id: int):
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT * FROM rides WHERE id=?", (ride_id,))
+        row = cur.fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
 # --- Persist ride progress as the driver moves ---
 def update_ride_progress(ride_id: int, progress: float):
     conn = get_connection()

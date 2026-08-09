@@ -168,7 +168,7 @@ folium.Marker(
     icon=folium.Icon(color="blue", icon="car", prefix="fa"),
 ).add_to(map_obj)
 
-st_folium(map_obj, width=700, height=500)
+st_folium(map_obj, width=700, height=500, key="track_ride_map")
 
 time.sleep(5)
 st.rerun()

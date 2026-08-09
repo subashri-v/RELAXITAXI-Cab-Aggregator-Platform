@@ -102,6 +102,23 @@ def handle_cancel_ride(st_app):
     st_app.session_state["_cancel_time"] = time.time()
     st_app.session_state["booking"] = None  # Clear private booking
 
+def sync_booking_with_db(st_app):
+    """Refresh route/fare from the DB in case the rider changed the
+    destination after this driver claimed the ride. Status is deliberately
+    left untouched here: while a ride is locked_by_driver in the DB, the
+    local 'pending' status is intentional (see main()'s lock comment)."""
+    booking = st_app.session_state.get("booking")
+    if not booking or "ride_id" not in booking:
+        return
+
+    latest = db_utils.get_ride_by_id(booking["ride_id"])
+    if not latest:
+        return
+
+    st_app.session_state["distance_data"] = db_utils.ride_to_distance_data(latest)
+    booking["fare"] = latest["fare"]
+    st_app.session_state["booking"] = booking
+
 # ---------------------------------------------------------------------
 # 2. VIEW HELPER FUNCTIONS
 # ---------------------------------------------------------------------
@@ -181,7 +198,7 @@ def _render_accepted_view(st_app, distance_data, ride_progress):
                   icon=folium.Icon(color="blue", icon="car",
                                     prefix="fa")).add_to(m)
 
-    st_folium(m, width=700, height=400, returned_objects=[])
+    st_folium(m, width=700, height=400, returned_objects=[], key="driver_ride_map")
 
 # ---------------------------------------------------------------------
 # 3. MAIN VIEW FUNCTION (The "Router")
@@ -249,6 +266,16 @@ def main():
             goto("app.py")
         st.stop()
 
+    # --- Resume an already-accepted ride if this driver's session was reset
+    # (e.g. tab closed mid-ride). session_state doesn't survive a fresh
+    # connection, but the DB's driver_id assignment does. ---
+    if not st.session_state.get("booking"):
+        resumed_ride = db_utils.get_active_ride_for_driver(int(st.session_state.user_id))
+        if resumed_ride:
+            st.session_state["booking"] = db_utils.ride_to_booking_view(resumed_ride)
+            st.session_state["distance_data"] = db_utils.ride_to_distance_data(resumed_ride)
+            st.session_state["ride_progress"] = float(resumed_ride.get("progress") or 0.0)
+
     # --- Handle temporary "cancel" message ---
     if st.session_state.get("_cancelled_ride"):
         st.warning("❌ Ride cancelled successfully!")
@@ -263,6 +290,9 @@ def main():
         time.sleep(2)
         st.session_state.pop("_completed_ride")
         st.rerun()
+
+    # --- Pick up any route/fare change the rider made after we claimed this ride ---
+    sync_booking_with_db(st)
 
     # --- Render the main page view ---
     render_driver_view()
