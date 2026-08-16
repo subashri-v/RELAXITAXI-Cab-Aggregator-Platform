@@ -11,7 +11,8 @@ import pandas as pd
 import streamlit as st
 
 from db_utils import get_driver_history
-from shared_state import get_app_state
+from session_utils import forget_session, goto, restore_session
+from ui_helpers import setup_page
 
 
 def check_driver_auth() -> None:
@@ -19,19 +20,20 @@ def check_driver_auth() -> None:
     role = st.session_state.get("role")
     if role != "driver":
         st.error("You must be logged in as a driver to view ride history.")
-        if st.button("Go to Login"):
-            st.switch_page("pages/driver_login.py")
+        if st.button("Go to Login", type="primary"):
+            goto("pages/driver_login.py")
         st.stop()
 
 
 def render_navigation() -> None:
     """Render sign-out and navigation buttons."""
-    if st.button("Sign Out"):
+    if st.button("Sign Out", type="tertiary"):
         st.session_state.role = None
-        st.switch_page("app.py")
+        forget_session()
+        goto("app.py")
 
-    if st.button("Back To Driver View"):
-        st.switch_page("pages/driver_view.py")
+    if st.button("Back To Driver View", type="tertiary"):
+        goto("pages/driver_view.py")
 
 
 def format_driver_history(rides: list[dict]) -> pd.DataFrame:
@@ -86,7 +88,8 @@ def show_driver_history() -> None:
 
 def main() -> None:
     """Main entry point for driver history page."""
-    get_app_state()  # Ensure shared state loads
+    setup_page("Driver History", "📜")
+    restore_session()
     check_driver_auth()
     st.title("👨‍✈️ Driver Ride History")
     render_navigation()

@@ -46,5 +46,5 @@ ENV/
 .DS_Store
 Thumbs.db
 
-# Streamlit
-.streamlit/
+# Streamlit (keep config.toml for theming, ignore local secrets)
+.streamlit/secrets.toml

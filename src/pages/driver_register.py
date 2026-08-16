@@ -1,8 +1,10 @@
 """Driver Registration Page for RelaxiTaxi."""
 import streamlit as st
 from db_utils import register_user, init_db
+from session_utils import goto
+from ui_helpers import setup_page
 
-st.set_page_config(page_title="Driver Registration", layout="centered")
+setup_page("Driver Registration", "🚖")
 
 # Initialize DB
 init_db()
@@ -34,10 +36,10 @@ if "registration_success" not in st.session_state:
 if st.session_state.registration_success:
     # If successful, show message and login button
     st.success("✅ Registration successful! Please log in.")
-    if st.button("Go to Login"):
+    if st.button("Go to Login", type="primary"):
         # Reset flag before switching
         st.session_state.registration_success = False
-        st.switch_page("pages/driver_login.py")
+        goto("pages/driver_login.py")
 else:
     with st.form("register_form"):
         name = st.text_input("Full Name")
@@ -46,7 +48,7 @@ else:
         vehicle_no = st.text_input("Vehicle Number")
         license_no = st.text_input("License Number")
 
-        submitted = st.form_submit_button("Register")
+        submitted = st.form_submit_button("Register", type="primary", use_container_width=True)
 
     if submitted:
         if not validate_registration(name, email, password, vehicle_no, license_no):
@@ -54,8 +56,11 @@ else:
         else:
             success = attempt_registration(name, email, password, vehicle_no, license_no)
             if success:
-                st.success("✅ Registration successful! Please log in.")
-                if st.button("Go to Login"):
-                    st.switch_page("pages/driver_login.py")
+                # Setting this flag (instead of rendering the button inline) is what
+                # lets the "Go to Login" click survive: a button nested under
+                # `if submitted:` never fires, because `submitted` is already back
+                # to False on the rerun the click itself triggers.
+                st.session_state.registration_success = True
+                st.rerun()
             else:
                 st.error("Registration failed. Email may already be registered.")

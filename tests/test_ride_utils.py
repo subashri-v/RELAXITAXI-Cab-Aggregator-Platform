@@ -3,7 +3,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pytest
-from src.ride_utils import calculate_distance, calculate_fare, get_coordinates
+from src.ride_utils import calculate_distance, calculate_fare, get_coordinates, estimate_eta_minutes
 
 def test_calculate_fare_non_ac():
     assert calculate_fare(10, ac=False) == 40 + 15 * 10
@@ -52,3 +52,16 @@ def test_calculate_distance_exception_handling(monkeypatch):
     # Now call it — should handle the exception and return None
     result = calculate_distance((12.9, 77.5), (13.0, 80.2))
     assert result is None
+
+def test_estimate_eta_scales_with_distance():
+    assert estimate_eta_minutes(25, avg_speed_kmph=25) == 60
+    assert estimate_eta_minutes(50, avg_speed_kmph=25) == 120
+
+def test_estimate_eta_minimum_one_minute():
+    assert estimate_eta_minutes(0.01, avg_speed_kmph=25) == 1
+
+def test_estimate_eta_invalid_distance_defaults_to_one():
+    assert estimate_eta_minutes(0) == 1
+    assert estimate_eta_minutes(-5) == 1
+    assert estimate_eta_minutes(None) == 1
+    assert estimate_eta_minutes("far") == 1

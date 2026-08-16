@@ -15,6 +15,19 @@ sys.path.insert(0, PROJECT_ROOT)
 import pytest
 from unittest.mock import MagicMock, patch
 
+
+class _AttrDict(dict):
+    """Dict that also supports attribute access, like Streamlit's real session_state."""
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(name)
+
+    def __setattr__(self, name, value):
+        self[name] = value
+
+
 @pytest.fixture
 def mock_streamlit():
     """
@@ -56,8 +69,9 @@ def mock_streamlit():
     mock_st.progress = MagicMock()
     mock_st.balloons = MagicMock()
     
-    # IMPORTANT: Mock session_state as a dictionary
-    mock_st.session_state = {} 
+    # IMPORTANT: Mock session_state as a dict that also supports attribute
+    # access (e.g. `st.session_state.user_id`), like real Streamlit.
+    mock_st.session_state = _AttrDict()
 
     # Mock display elements
     mock_st.markdown = MagicMock()

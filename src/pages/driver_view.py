@@ -17,79 +17,70 @@ import streamlit as st
 from streamlit_folium import st_folium
 
 # 3. Local application imports
-# --- FIX: Corrected all imports ---
-from shared_state import get_app_state
-import db_utils  # <-- ADDED FROM YOUR BRANCH
+import db_utils
+from session_utils import forget_session, goto, restore_session
+from ui_helpers import setup_page
 
 # ---------------------------------------------------------------------
 # 1. HANDLER FUNCTIONS (The "Controller" Logic)
 # ---------------------------------------------------------------------
 
 def handle_logout(st_app):
-    """Logs the user out and returns to the login page."""
+    """Logs the user out. Navigation can't happen here: Streamlit treats
+    st.switch_page (like st.rerun) as a no-op inside an on_click callback,
+    so we just flag it and let main() do the actual navigation."""
     st_app.session_state["role"] = None
-    st_app.switch_page("app.py")
+    st_app.session_state["_signed_out"] = True
 
 
 def handle_accept_ride(st_app):
     """Accepts the pending ride request."""
-    state = get_app_state()
-
-    # Update private state
-    st_app.session_state["booking"]['status'] = 'accepted'
-    # --- MERGED: Use user_name from your branch ---
-    st_app.session_state["booking"]['driver'] = st_app.session_state.get("user_name", "You (Driver)")
-
-    # Update public state so customer sees it
-    state["booking"] = st_app.session_state["booking"]
-
-    # --- ADDED FROM YOUR BRANCH: Persist acceptance in DB ---
     booking = st_app.session_state["booking"]
+    driver_name = st_app.session_state.get("user_name", "You (Driver)")
+
+    # Persist acceptance in DB - this is now the single source of truth
     if "ride_id" in booking:
-        db_utils.accept_ride(ride_id=booking["ride_id"], driver_id=int(st_app.session_state.user_id))
+        db_utils.accept_ride(
+            ride_id=booking["ride_id"],
+            driver_id=int(st_app.session_state.user_id),
+            driver_name=driver_name
+        )
+
+    # Update private state to match
+    booking['status'] = 'accepted'
+    booking['driver'] = driver_name
+    st_app.session_state["booking"] = booking
 
 
 def handle_reject_ride(st_app):
     """Rejects the ride and clears the booking."""
-    state = get_app_state()
+    booking = st_app.session_state.get("booking")
+    if booking and "ride_id" in booking:
+        db_utils.update_ride_status(booking["ride_id"], "rejected")
 
-    # Clear public state
-    state["booking"] = None
-    state["distance_data"] = None
-
-    # Clear private state
     st_app.session_state["booking"] = None
     st_app.session_state["distance_data"] = None
 
 
 def handle_move_forward(st_app):
     """Moves the ride progress forward by 25%."""
-    state = get_app_state()
-
-    # Update private state
     progress = st_app.session_state.get("ride_progress", 0.0)
     new_progress = min(1.0, progress + 0.25)
     st_app.session_state["ride_progress"] = new_progress
 
-    # Update public state so customer sees it
-    state["ride_progress"] = new_progress
+    booking = st_app.session_state.get("booking")
+    if booking and "ride_id" in booking:
+        db_utils.update_ride_progress(booking["ride_id"], new_progress)
 
 
 def handle_complete_ride(st_app):
     """Completes the ride, shows balloons, and clears state."""
-    state = get_app_state()
     st_app.balloons()
     st_app.success("Ride Completed!")
 
-    # --- ADDED FROM YOUR BRANCH: Update DB before clearing state ---
     booking = st_app.session_state.get("booking")
     if booking and "ride_id" in booking:
         db_utils.update_ride_status(ride_id=booking["ride_id"], status="completed")
-
-    # Clear public state
-    state["booking"] = None
-    state["distance_data"] = None
-    state["ride_progress"] = 0.0
 
     # Clear private state
     st_app.session_state["booking"] = None
@@ -102,17 +93,31 @@ def handle_complete_ride(st_app):
 
 def handle_cancel_ride(st_app):
     """Cancels the ride and sets a flag to show a message."""
-    state = get_app_state()
-
-    # Update public state so customer page can react
-    state["booking"] = {"status": "cancelled"}
-    state["distance_data"] = None
-    state["ride_progress"] = 0.0
+    booking = st_app.session_state.get("booking")
+    if booking and "ride_id" in booking:
+        db_utils.update_ride_status(booking["ride_id"], "cancelled")
 
     # Set private state for temp message
     st_app.session_state["_cancelled_ride"] = True
     st_app.session_state["_cancel_time"] = time.time()
     st_app.session_state["booking"] = None  # Clear private booking
+
+def sync_booking_with_db(st_app):
+    """Refresh route/fare from the DB in case the rider changed the
+    destination after this driver claimed the ride. Status is deliberately
+    left untouched here: while a ride is locked_by_driver in the DB, the
+    local 'pending' status is intentional (see main()'s lock comment)."""
+    booking = st_app.session_state.get("booking")
+    if not booking or "ride_id" not in booking:
+        return
+
+    latest = db_utils.get_ride_by_id(booking["ride_id"])
+    if not latest:
+        return
+
+    st_app.session_state["distance_data"] = db_utils.ride_to_distance_data(latest)
+    booking["fare"] = latest["fare"]
+    st_app.session_state["booking"] = booking
 
 # ---------------------------------------------------------------------
 # 2. VIEW HELPER FUNCTIONS
@@ -140,7 +145,7 @@ def _render_pending_view(st_app, booking, distance_data):
     col1, col2 = st_app.columns(2)
     with col1:
         st_app.button("✅ Accept Ride", on_click=handle_accept_ride,
-                      args=(st_app,), use_container_width=True)
+                      args=(st_app,), use_container_width=True, type="primary")
     with col2:
         st_app.button("🚫 Reject Ride", on_click=handle_reject_ride,
                       args=(st_app,), use_container_width=True)
@@ -155,11 +160,11 @@ def _render_accepted_view(st_app, distance_data, ride_progress):
     col1, col2, col3 = st_app.columns(3)
     with col1:
         st_app.button("🚗 Move Forward", on_click=handle_move_forward,
-                      args=(st_app,), use_container_width=True)
+                      args=(st_app,), use_container_width=True, type="primary")
     with col2:
         if ride_progress > 0.0:
             st_app.button("🏁 Complete Ride", on_click=handle_complete_ride,
-                          args=(st_app,), use_container_width=True)
+                          args=(st_app,), use_container_width=True, type="primary")
     with col3:
         if ride_progress == 0.0:
             st_app.button("🚫 Cancel Ride", on_click=handle_cancel_ride,
@@ -184,7 +189,7 @@ def _render_accepted_view(st_app, distance_data, ride_progress):
         ride_progress * (end_coords[1] - start_coords[1])
     curr_location = (curr_lat, curr_lon)
 
-    m = folium.Map(location=curr_location, zoom_start=13)
+    m = folium.Map(location=curr_location, zoom_start=13, tiles="CartoDB dark_matter")
     folium.Marker(start_coords, tooltip="Start",
                   icon=folium.Icon(color="green")).add_to(m)
     folium.Marker(end_coords, tooltip="Destination",
@@ -193,7 +198,7 @@ def _render_accepted_view(st_app, distance_data, ride_progress):
                   icon=folium.Icon(color="blue", icon="car",
                                     prefix="fa")).add_to(m)
 
-    st_folium(m, width=700, height=400, returned_objects=[])
+    st_folium(m, width=700, height=400, returned_objects=[], key="driver_ride_map")
 
 # ---------------------------------------------------------------------
 # 3. MAIN VIEW FUNCTION (The "Router")
@@ -209,13 +214,11 @@ def render_driver_view():
     with col1:
         st.title("👨‍✈️ Driver Portal")
     with col2:
-        st.button("Sign Out", on_click=handle_logout, args=(st,))
+        st.button("Sign Out", on_click=handle_logout, args=(st,), type="tertiary")
 
-    # --- ADDED FROM YOUR BRANCH: Ride History Button ---
-    if st.button("Driver Ride History"):
-        st.switch_page("pages/driver_history.py")
-    st.divider() # Added a divider for cleaner UI
-    # --- END ---
+    if st.button("Driver Ride History", type="tertiary"):
+        goto("pages/driver_history.py")
+    st.divider()
 
     # --- Load states from *private* session_state ---
     booking = st.session_state.get("booking")
@@ -247,24 +250,31 @@ def main():
     This function runs all the "page-level" logic.
     """
 
-    # --- CSS ---
-    st.markdown(
-        """
-    <style>
-        [data-testid="stSidebar"] {
-            display: none;
-        }
-    </style>
-    """,
-        unsafe_allow_html=True,
-    )
+    setup_page("Driver Portal", "🧑‍✈️")
+    restore_session()
+
+    # --- Handle deferred sign-out (flagged by handle_logout) ---
+    if st.session_state.pop("_signed_out", False):
+        forget_session()
+        goto("app.py")
+        st.stop()
 
     # --- Security Check ---
     if st.session_state.get("role") != "driver":
         st.error("You must be logged in as a driver to access this page.")
-        if st.button("Go to Login"):
-            st.switch_page("app.py")
+        if st.button("Go to Login", type="primary"):
+            goto("app.py")
         st.stop()
+
+    # --- Resume an already-accepted ride if this driver's session was reset
+    # (e.g. tab closed mid-ride). session_state doesn't survive a fresh
+    # connection, but the DB's driver_id assignment does. ---
+    if not st.session_state.get("booking"):
+        resumed_ride = db_utils.get_active_ride_for_driver(int(st.session_state.user_id))
+        if resumed_ride:
+            st.session_state["booking"] = db_utils.ride_to_booking_view(resumed_ride)
+            st.session_state["distance_data"] = db_utils.ride_to_distance_data(resumed_ride)
+            st.session_state["ride_progress"] = float(resumed_ride.get("progress") or 0.0)
 
     # --- Handle temporary "cancel" message ---
     if st.session_state.get("_cancelled_ride"):
@@ -281,33 +291,31 @@ def main():
         st.session_state.pop("_completed_ride")
         st.rerun()
 
+    # --- Pick up any route/fare change the rider made after we claimed this ride ---
+    sync_booking_with_db(st)
+
     # --- Render the main page view ---
     render_driver_view()
 
-    # --- Auto-refresh logic (from develop, but fixed for pylint) ---
-    state = get_app_state()
-
+    # --- Auto-refresh logic: poll the DB for a ride to claim ---
     # If this driver's private notebook is empty...
     if not st.session_state.get("booking"):
 
-        # Get the booking from the public board first
-        booking_on_public_board = state.get("booking")
+        # Look for the oldest ride still waiting for a driver
+        pending_ride = db_utils.get_pending_ride()
 
-        # Now check the variable (this is cleaner for pylint)
-        if booking_on_public_board and booking_on_public_board["status"] == "pending":
-
-            # A ride is available! Make a *copy* for our private notebook.
-            st.session_state["booking"] = booking_on_public_board.copy()
-            st.session_state["distance_data"] = state["distance_data"].copy()
+        if pending_ride and db_utils.try_lock_ride(pending_ride["id"]):
+            # We won the race to claim this ride. Build our private notebook
+            # from the *pre-lock* snapshot, so it still shows status "pending"
+            # (the DB row itself is now "locked_by_driver" so no one else grabs it).
+            st.session_state["booking"] = db_utils.ride_to_booking_view(pending_ride)
+            st.session_state["distance_data"] = db_utils.ride_to_distance_data(pending_ride)
             st.session_state["ride_progress"] = 0.0 # Start progress
-
-            # Lock the ride on the public whiteboard so another driver can't take it
-            booking_on_public_board["status"] = "locked_by_driver"
 
             st.rerun() # Rerun immediately to show the "pending" UI
 
         else:
-            # No ride yet. Wait 5 seconds and check again.
+            # No ride yet, or another driver already claimed it. Check again shortly.
             time.sleep(5)
             st.rerun()
 

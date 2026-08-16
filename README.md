@@ -27,7 +27,6 @@ src/
 ├── app.py                 # Landing page (role selection)
 ├── db_utils.py             # SQLite connection, schema, auth, ride CRUD
 ├── ride_utils.py           # Fare/distance calculation helpers
-├── shared_state.py         # Shared in-memory app state (cached resource)
 └── pages/
     ├── rider_login.py / rider_register.py
     ├── driver_login.py / driver_register.py
