@@ -540,9 +540,27 @@ jobs:
         with:
           # This is the name the file will have on GitHub
           name: relaxi-taxi-artifact
-          
+
           # This is the path to the file you just created
           path: deploy.zip
-          
+
           # Keep the artifact for 7 days
           retention-days: 7
+
+  # ============================================
+  # DEPLOY STAGE
+  # ============================================
+  deploy:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+
+    # Only deploy once the real quality gates are green.
+    needs: [coverage, lint, security]
+
+    # Only fire on a genuine push to main - never on PRs (even PRs into
+    # main), so a fork's workflow run can't reach this step.
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Trigger Render deploy
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
