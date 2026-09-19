@@ -20,6 +20,18 @@ A Streamlit-based cab aggregator web app that connects riders and drivers — bo
 - [folium](https://python-visualization.github.io/folium/) / `streamlit-folium` — interactive maps
 - [qrcode](https://pypi.org/project/qrcode/) — UPI payment QR generation
 
+## Project at a Glance
+
+| Metric | Value |
+|---|---|
+| Automated tests | 142 (unit, integration, security, UI-page, race-condition) |
+| Code size | ~1,700 lines of app code, ~2,000 lines of test code |
+| Pages / screens | 10 Streamlit pages across rider and driver flows |
+| CI/CD stages | 7: build, test, coverage, lint, security, summary, deploy |
+| Database | 4 tables (SQLite) |
+| Quality gates | Coverage ≥ 75%, pylint, bandit security scan |
+| Payment methods | 3 (cash, card, UPI with QR) |
+
 ## Project Structure
 
 ```
@@ -66,6 +78,18 @@ The app will open in your browser (default: http://localhost:8501). A SQLite dat
 ```bash
 pytest tests/ -v --cov=src --cov-report=html
 ```
+
+### Coverage
+
+Overall coverage of `src/` is **~98%** (`python check_coverage.py` to reproduce).
+
+| Area | Coverage |
+|---|---|
+| `db_utils.py` (database layer) | 99.5% |
+| `ride_utils.py`, `session_utils.py`, `ui_helpers.py` | 96-100% |
+| `driver_view.py` | 97.6% |
+| `book_ride.py`, `track_ride.py` | 96-99% |
+| Login, register and history pages, `app.py` | 100% |
 
 See [COVERAGE_GUIDE.md](COVERAGE_GUIDE.md) for coverage details and [CI_PIPELINE_SETUP.md](CI_PIPELINE_SETUP.md) for the full CI pipeline (build, test, coverage, lint, and security stages).
 
