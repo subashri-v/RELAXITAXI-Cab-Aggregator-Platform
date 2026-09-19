@@ -123,7 +123,7 @@ jobs:
       run: |
         echo "::group::Running Tests with Coverage"
         echo "Coverage configuration is managed via .coveragerc file"
-        echo "Add modules to .coveragerc 'include' list as you add tests"
+        echo "All of src/ is measured; exclude modules via the omit list in .coveragerc"
         pytest tests/ -v --cov=src --cov-config=.coveragerc --cov-report=term-missing --cov-report=html --cov-report=xml --cov-fail-under=75
         echo "::endgroup::"
     
